@@ -96,6 +96,18 @@ export function truncate(s, max) {
   return s.slice(0, Math.max(1, max - 1)).trimEnd() + '…';
 }
 
+// The body holds BODY_LINES lines. When a screen composes more than that,
+// window the lines so the selected line is always on the display — a
+// control the user cannot see might as well not exist. The window keeps
+// the top of the screen in view until the selection moves deep enough
+// that it has to follow.
+export function windowLines(lines, selectedIdx) {
+  if (lines.length <= BODY_LINES) return lines;
+  const maxStart = lines.length - BODY_LINES;
+  const start = Math.min(Math.max(0, selectedIdx - (BODY_LINES - 2)), maxStart);
+  return lines.slice(start, start + BODY_LINES);
+}
+
 export function wrapText(s, width) {
   const words = String(s).split(/\s+/).filter(Boolean);
   const lines = [];
@@ -257,6 +269,12 @@ export class GlanceApp {
   }
 
   setMarkets(markets, at = new Date()) {
+    // Anchor the selection to a market id before the list changes. A
+    // refresh re-sorts the feed, so a bare row index would silently land
+    // on a different market; the highlight (and the tap that follows it)
+    // must stay on the market the user is actually looking at.
+    const anchorRow = this.rows()[this.cursor];
+    const anchorId = anchorRow && anchorRow.id ? anchorRow.id : null;
     this.markets = markets;
     this.marketById = new Map(markets.map((m) => [m.id, m]));
     this.updatedAt = at;
@@ -265,6 +283,11 @@ export class GlanceApp {
     for (const f of fired) this.alertQueue.push(f);
     if (fired.length && this.screen !== 'alert') this.screen = 'alert';
     this.clampCursor();
+    if (anchorId) {
+      const idx = this.rows().findIndex((r) => r.id === anchorId);
+      // Market gone from the new list: fall back to the first row.
+      this.cursor = idx >= 0 ? idx : 0;
+    }
   }
 
   markStale() { this.stale = true; }
@@ -292,13 +315,22 @@ export class GlanceApp {
       const m = this.detail();
       if (!m) return [];
       const watching = this.watchlist.has(m.id);
+      const alert = this.alerts.find((a) => a.marketId === m.id && a.outcomeIndex === 0);
       return [
         { label: watching ? 'Stop watching' : 'Watch this market', action: 'watch' },
         ...m.outcomes.map((name, i) => ({
           label: `Paper bet ${fmtMoney(BET_SIZES[this.betSizeIndex])} on ${truncate(name, 14)}`,
           action: 'bet', outcomeIndex: i,
         })),
-        { label: 'Set a price alert', action: 'alert' },
+        // The alert row states what is true: an existing alert shows its
+        // trigger, so the user is never offered "set" for one already set
+        // (tapping it explains instead — see addAlert).
+        {
+          label: alert
+            ? `Alert on ${truncate(m.outcomes[0], 12)} ${alert.dir === 'above' ? '≥' : '≤'} ${fmtPct(alert.threshold)}`
+            : 'Set a price alert',
+          action: 'alert',
+        },
         { label: 'My positions', action: 'positions' },
       ];
     }
@@ -473,7 +505,7 @@ export class GlanceApp {
     const lines = feed.map((m, i) => this.marketLine(m, i === this.cursor));
     lines.push('scroll move · tap open · 2xtap positions');
     if (this.stale) lines.push('Showing last good numbers (fetch failed).');
-    return lines;
+    return windowLines(lines, this.cursor);
   }
 
   renderDetail(W) {
@@ -487,7 +519,10 @@ export class GlanceApp {
     lines.push(`Today ${fmtChange(m.oneDayChange)} · Vol ${fmtMoney(m.volume24hr)}${m.endDate ? ` · Ends ${fmtDate(m.endDate)}` : ''}`);
     const rows = this.rows();
     rows.forEach((r, i) => lines.push(`${i === this.cursor ? '>' : ' '} ${truncate(r.label, W - 2)}`));
-    return lines;
+    // Question + outcomes + stats + rows is 9–11 lines — more than the
+    // display holds. Window around the selected row so every row,
+    // including the alert row at the bottom, can actually be seen.
+    return windowLines(lines, lines.length - rows.length + this.cursor);
   }
 
   renderBet(W) {
@@ -525,7 +560,7 @@ export class GlanceApp {
     });
     lines.push(`Value ${fmtMoney(value)} · P&L ${pnl >= 0 ? '+' : ''}${fmtMoney(pnl)}`);
     lines.push('tap: open · 2xtap: back');
-    return lines;
+    return windowLines(lines, this.cursor);
   }
 
   renderAlert(W) {

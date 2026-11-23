@@ -1,6 +1,6 @@
 {
-  "passed": 19,
-  "total": 19,
+  "passed": 34,
+  "total": 34,
   "results": [
     {
       "check": "glance shows live markets",
@@ -91,6 +91,81 @@
       "check": "mode chip says simulator",
       "pass": true,
       "detail": ""
+    },
+    {
+      "check": "fixture feed loads in routed page",
+      "pass": true,
+      "detail": "> 48% \u25b29.0 Yokohama: Ryo Ono vs Lennon Roa\u2026"
+    },
+    {
+      "check": "scroll selects the Fed market",
+      "pass": true,
+      "detail": "> 93% \u25b23.0 Will the Fed increase interest\u2026"
+    },
+    {
+      "check": "selection survives a re-sort (same market stays highlighted)",
+      "pass": true,
+      "detail": "> 93% \u25b250.0 Will the Fed increase interest\u2026"
+    },
+    {
+      "check": "re-sort really moved the selected market to the top row",
+      "pass": true,
+      "detail": "first line class: g2-line selected"
+    },
+    {
+      "check": "missing selected market falls back to the first row",
+      "pass": true,
+      "detail": "> 48% \u25b29.0 Yokohama: Ryo Ono vs Lennon Roa\u2026"
+    },
+    {
+      "check": "scroll selects the NVIDIA market",
+      "pass": true,
+      "detail": "> 18% \u25b27.7 Will there be no new be CEO of\u2026"
+    },
+    {
+      "check": "NVIDIA detail opens",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "alert row reachable on a long-question market",
+      "pass": true,
+      "detail": "Will there be no new be CEO of NVIDIA by | December 31, 2028? | Yes                18% | No                 82% | Today \u25b27.7 \u00b7 Vol $424.6k \u00b7 Ends 1 Jan | > Watch this market |   Paper bet $10.00 on Yes |   Paper bet $10.00 on No |   Watch this market | > Paper bet $10.00 on Yes | > Paper bet $10.00 on No |   Set a price alert | > Set a price alert |   My positions | > My positions"
+    },
+    {
+      "check": "alert row selectable on NVIDIA detail",
+      "pass": true,
+      "detail": "> Set a price alert"
+    },
+    {
+      "check": "tap on alert row sets an alert",
+      "pass": true,
+      "detail": "Watching 0 \u00b7 Positions 0 \u00b7 Alerts 1"
+    },
+    {
+      "check": "back to glance after setting alert",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "re-select NVIDIA market",
+      "pass": true,
+      "detail": "> 18% \u25b27.7 Will there be no new be CEO of\u2026"
+    },
+    {
+      "check": "alert row shows set state on revisit",
+      "pass": true,
+      "detail": "> Alert on Yes \u2265 23%"
+    },
+    {
+      "check": "re-select Fed market",
+      "pass": true,
+      "detail": "> 93% \u25b23.0 Will the Fed increase interest\u2026"
+    },
+    {
+      "check": "alert row shows not-set state on a fresh market",
+      "pass": true,
+      "detail": "> Set a price alert"
     },
     {
       "check": "no page or console errors",
