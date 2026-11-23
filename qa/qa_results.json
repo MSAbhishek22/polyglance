@@ -1,0 +1,101 @@
+{
+  "passed": 19,
+  "total": 19,
+  "results": [
+    {
+      "check": "glance shows live markets",
+      "pass": true,
+      "detail": "8 lines"
+    },
+    {
+      "check": "ticker shows a real market",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "outcome stats filled",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "scroll moves selection",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "tap opens detail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "watch chip adds to watchlist",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "bet chip opens confirm screen",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "confirm lands on positions",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "position recorded",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "back returns to glance",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "keyboard opens detail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "keyboard back works",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "motion toggle on",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "motion toggle off",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "mic control is live or clearly labelled",
+      "pass": true,
+      "detail": "\ud83c\udf99 Speak"
+    },
+    {
+      "check": "manual refresh works",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "reset clears session",
+      "pass": true,
+      "detail": "Watching 0 \u00b7 Positions 0 \u00b7 Alerts 0"
+    },
+    {
+      "check": "mode chip says simulator",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "no page or console errors",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

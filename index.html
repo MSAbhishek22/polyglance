@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PolyGlance — Polymarket on Even G2</title>
+<meta name="description" content="Live Polymarket odds on Even Realities G2 smart glasses. Glance at the number, act on it in one tap. Paper money only.">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wordmark">POLY<span>GLANCE</span></div>
+  <div class="topbar-right">
+    <span class="chip chip-static">Track 02 · Crypto &amp; DeFi</span>
+    <span class="chip chip-static" id="modeChip">Browser simulator</span>
+    <button class="chip chip-btn" id="motionToggle" type="button" aria-pressed="false">
+      <span class="switch-dot" aria-hidden="true"></span>Low motion: off
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero" id="top">
+    <p class="kicker">Even Realities G2 · Polymarket</p>
+    <h1>Polymarket,<br>at a <em>glance</em>.</h1>
+    <p class="lede">The odds you follow, on the glasses you already wear. One number, one line, one tap — no phone, no feed, no scroll. Paper money only, so the acting is real and the risk is not.</p>
+    <div class="ticker" aria-live="polite">
+      <span class="ticker-label">Live now</span>
+      <span id="tickerText">Loading live odds from Polymarket…</span>
+    </div>
+    <p class="hero-cta"><a class="btn" href="#app">Try the simulator</a> <a class="btn btn-quiet" href="#how">How it works</a></p>
+  </section>
+
+  <!-- PROBLEM -->
+  <section class="section" id="problem">
+    <p class="kicker">The problem</p>
+    <h2>The number is one line.<br>The phone makes it twenty steps.</h2>
+    <div class="cards">
+      <article class="card">
+        <h3>Checking is a chore</h3>
+        <p>Unlock, open the app, wait for the feed, find your market, read the number. Thirty seconds of friction for something that takes one second to understand.</p>
+      </article>
+      <article class="card">
+        <h3>So people guess instead</h3>
+        <p>Most checks never happen. Decisions get made on yesterday's price, a headline, or a feeling — while the market moved hours ago.</p>
+      </article>
+      <article class="card">
+        <h3>Acting is even slower</h3>
+        <p>By the time you have opened a position screen, the moment you wanted to act on has usually passed. The glance and the action live in different places.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- SOLUTION -->
+  <section class="section" id="how">
+    <p class="kicker">The solution</p>
+    <h2>Read it on the glasses.<br>Act on it from the glasses.</h2>
+    <div class="cards">
+      <article class="card">
+        <p class="step-num">1</p>
+        <h3>Glance</h3>
+        <p>Your watched markets and the day's biggest movers, one line each: the price, the move, the question. Live from Polymarket, refreshed every 30 seconds.</p>
+      </article>
+      <article class="card">
+        <p class="step-num">2</p>
+        <h3>Tap</h3>
+        <p>One tap opens a market. One more places a paper bet at the live price, sets an alert, or adds it to your watchlist. Double-tap goes back — or steps the bet size up.</p>
+      </article>
+      <article class="card">
+        <p class="step-num">3</p>
+        <h3>Get told</h3>
+        <p>Set a line — say, Yes at 65%. When the market crosses it while the app is open, the alert takes over the display. No phone buzz, no missed move.</p>
+      </article>
+    </div>
+    <p class="note">Voice works the same way: say <q>next</q>, <q>watch this</q>, <q>bet ten on yes</q>, <q>positions</q>, <q>back</q>. In this browser demo the mic button uses your browser's speech recognition where it offers one; the same commands sit under the display as chips, so every command can be tried either way.</p>
+  </section>
+
+  <!-- APP -->
+  <section class="section" id="app">
+    <p class="kicker">The app</p>
+    <h2>The G2 display, working.</h2>
+    <p class="section-lede">This is the app itself, drawn at the G2's true 576 × 288 size in its own green. On real glasses the same screens are sent through the Even Hub SDK; here, the buttons stand in for the frame and the ring.</p>
+
+    <div class="sim-wrap" id="simWrap">
+      <div class="g2-bezel" id="g2Bezel">
+        <div class="g2-screen" role="img" aria-label="Simulated G2 display" id="g2Screen">
+          <div class="g2-header" id="g2Header">POLYGLANCE</div>
+          <div class="g2-body" id="g2Body"></div>
+          <div class="g2-foot" id="g2Foot">starting…</div>
+        </div>
+      </div>
+
+      <div class="controls" aria-label="Simulator controls">
+        <div class="control-group">
+          <span class="control-label">Ring scroll</span>
+          <button class="ctl" id="btnUp" type="button">↑ Up</button>
+          <button class="ctl" id="btnDown" type="button">↓ Down</button>
+        </div>
+        <div class="control-group">
+          <span class="control-label">Frame tap</span>
+          <button class="ctl" id="btnTap" type="button">Tap</button>
+          <button class="ctl" id="btnDouble" type="button">Double tap</button>
+        </div>
+        <div class="control-group">
+          <span class="control-label">Voice</span>
+          <button class="ctl" id="btnMic" type="button">🎙 Speak</button>
+        </div>
+      </div>
+      <div class="chips" aria-label="Voice commands">
+        <span class="control-label">Say — or tap:</span>
+        <button class="vchip" type="button" data-cmd="next">“next”</button>
+        <button class="vchip" type="button" data-cmd="open">“open”</button>
+        <button class="vchip" type="button" data-cmd="watch this">“watch this”</button>
+        <button class="vchip" type="button" data-cmd="bet ten on yes">“bet ten on yes”</button>
+        <button class="vchip" type="button" data-cmd="positions">“positions”</button>
+        <button class="vchip" type="button" data-cmd="back">“back”</button>
+      </div>
+      <p class="sim-status" id="simStatus" aria-live="polite">Loading live odds…</p>
+
+      <div class="session-bar">
+        <span id="sessionInfo">Watching 0 · Positions 0 · Alerts 0</span>
+        <span class="session-actions">
+          <button class="ctl ctl-small" id="btnRefresh" type="button">Refresh odds now</button>
+          <button class="ctl ctl-small" id="btnReset" type="button">Reset paper book</button>
+        </span>
+      </div>
+    </div>
+
+    <p class="note">Keyboard works too: ↑ ↓ to scroll, Enter to tap, Backspace to double-tap. Your watchlist, paper book and alerts are kept in this browser only (local storage) — nothing is sent anywhere.</p>
+  </section>
+
+  <!-- OUTCOME -->
+  <section class="section" id="outcome">
+    <p class="kicker">Outcome so far</p>
+    <h2>Measured, not promised.</h2>
+    <div class="stats">
+      <div class="stat"><p class="stat-num" id="statMarkets">—</p><p class="stat-label">live markets loaded from Polymarket right now</p></div>
+      <div class="stat"><p class="stat-num" id="statVolume">—</p><p class="stat-label">combined 24-hour volume across those markets</p></div>
+      <div class="stat"><p class="stat-num">30s</p><p class="stat-label">refresh cycle while the app is open</p></div>
+      <div class="stat"><p class="stat-num">$0</p><p class="stat-label">real money at risk — every bet in PolyGlance is paper</p></div>
+    </div>
+    <p class="note">The build is covered by 16 automated tests on the core maths and screen logic, run against a recorded response from the live Polymarket API. If a fetch fails, the display keeps the last good numbers and says so — it never invents a price.</p>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer-cols">
+    <p>PolyGlance — built for Heads Up: Even Realities (DoraHacks), Track 02 · Crypto &amp; DeFi. Data: Polymarket Gamma API, public and live. Odds are market prices, not advice; nothing here is financial advice.</p>
+    <p>Paper trading only: no wallet, no real orders, no user funds — as the event rules require. Alerts work while the app is open; the G2 cannot show anything while another app is in front, and PolyGlance does not pretend otherwise.</p>
+  </div>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
