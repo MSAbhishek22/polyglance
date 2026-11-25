@@ -248,9 +248,9 @@ test('panel command follows the alert already set, and high prices flip directio
   assert.equal(alertCommandText(high, []), '/alert will-it-rain below 88');
 });
 
-test('bot link stays empty until a username is configured (no dead control)', () => {
-  assert.equal(BOT_USERNAME, '');
-  assert.equal(botLink(), '');
+test('bot link points at the configured bot (no dead control)', () => {
+  assert.equal(BOT_USERNAME, 'PolyGlanceAlertsBot');
+  assert.equal(botLink(), 'https://t.me/PolyGlanceAlertsBot');
 });
 
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures above)' : ''}`);

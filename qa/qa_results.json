@@ -158,9 +158,9 @@
       "detail": "/alert will-candidate-a-be-the-next-ceo-of-nvidia above 23"
     },
     {
-      "check": "telegram bot link hidden while no bot is configured",
+      "check": "telegram bot link shown, pointing at the configured bot",
       "pass": true,
-      "detail": ""
+      "detail": "https://t.me/PolyGlanceAlertsBot"
     },
     {
       "check": "copy button confirms the copy",

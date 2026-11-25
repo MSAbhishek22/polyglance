@@ -260,8 +260,10 @@ def main():
             tg_cmd = page2.locator("#tgCommand").inner_text()
             check("telegram panel shows the open market's set-alert command",
                   tg_cmd == "/alert will-candidate-a-be-the-next-ceo-of-nvidia above 23", tg_cmd)
-            check("telegram bot link hidden while no bot is configured",
-                  page2.locator("#tgBotRow").is_hidden())
+            check("telegram bot link shown, pointing at the configured bot",
+                  page2.locator("#tgBotRow").is_visible()
+                  and page2.locator("#tgBotLink").get_attribute("href") == "https://t.me/PolyGlanceAlertsBot",
+                  page2.locator("#tgBotLink").get_attribute("href"))
             page2.click("#btnCopyTg")
             page2.wait_for_timeout(250)
             check("copy button confirms the copy",

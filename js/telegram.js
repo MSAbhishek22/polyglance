@@ -12,7 +12,7 @@ import { makeAlert, fmtPct } from './core.js';
 // (steps in the README), then put its username here, without the @ — the
 // "Open the bot in Telegram" link in the panel appears only while this is
 // non-empty, so the panel never shows a control that goes nowhere.
-export const BOT_USERNAME = '';
+export const BOT_USERNAME = 'PolyGlanceAlertsBot';
 
 export function botLink() {
   return BOT_USERNAME ? `https://t.me/${BOT_USERNAME}` : '';
