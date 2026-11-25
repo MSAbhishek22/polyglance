@@ -57,6 +57,10 @@ def main():
             check("glance shows live markets", len(lines) >= 4, f"{len(lines)} lines")
             check("ticker shows a real market", "%" in page.locator("#tickerText").inner_text())
             check("outcome stats filled", page.locator("#statMarkets").inner_text().strip() not in ("—", ""))
+            tg_cmd_live = page.locator("#tgCommand").inner_text()
+            check("telegram panel offers a command once odds load",
+                  tg_cmd_live.startswith("/alert ") and not page.locator("#btnCopyTg").is_disabled(),
+                  tg_cmd_live)
             page.screenshot(path=os.path.join(HERE, "sim-glance.png"))
 
             # 2. Scroll moves the cursor
@@ -86,6 +90,9 @@ def main():
             page.wait_for_timeout(250)
             check("confirm lands on positions", page.locator("#g2Header").inner_text().startswith("POSITIONS"))
             check("position recorded", "Positions 1" in page.locator("#sessionInfo").inner_text())
+            check("top calls board lists the paper position",
+                  page.locator(".call-row").count() >= 1,
+                  f"{page.locator('.call-row').count()} call rows")
             page.screenshot(path=os.path.join(HERE, "sim-positions.png"))
 
             # 6. Back chip returns to glance; keyboard works too
@@ -145,6 +152,7 @@ def main():
                 proxy={"server": "http://127.0.0.1:8899", "bypass": "127.0.0.1,localhost"},
                 ignore_https_errors=True,
             )
+            ctx2.grant_permissions(["clipboard-read", "clipboard-write"], origin=URL)
             page2 = ctx2.new_page()
             page2.on("pageerror", lambda e: errors.append(f"pageerror(2): {e}"))
             page2.on("console", lambda m: errors.append(f"console.{m.type}(2): {m.text}") if m.type == "error" else None)
@@ -246,6 +254,45 @@ def main():
                   "Alerts 1" in page2.locator("#sessionInfo").inner_text(),
                   page2.locator("#sessionInfo").inner_text())
 
+            # 15b. Telegram panel: NVIDIA is the open market and its alert
+            # is now set (price 0.1755 -> the app line is above 23), so the
+            # panel must offer exactly that command, ready to copy.
+            tg_cmd = page2.locator("#tgCommand").inner_text()
+            check("telegram panel shows the open market's set-alert command",
+                  tg_cmd == "/alert will-candidate-a-be-the-next-ceo-of-nvidia above 23", tg_cmd)
+            check("telegram bot link hidden while no bot is configured",
+                  page2.locator("#tgBotRow").is_hidden())
+            page2.click("#btnCopyTg")
+            page2.wait_for_timeout(250)
+            check("copy button confirms the copy",
+                  "Copied" in page2.locator("#tgStatus").inner_text(),
+                  page2.locator("#tgStatus").inner_text())
+            clip = page2.evaluate("() => navigator.clipboard.readText().catch(() => '')")
+            check("clipboard holds the exact command", clip == tg_cmd, clip)
+            check("board scores the set alert (15 points, no hits yet)",
+                  page2.locator("#scoreNum").inner_text() == "15"
+                  and page2.locator("#statHits").inner_text() == "0",
+                  page2.locator("#scoreBreakdown").inner_text())
+
+            # 15c. Force the crossing: NVIDIA's Yes price jumps to 0.30,
+            # past the set line (above 23). On refresh the alert fires —
+            # the alert screen takes over, the hit is counted, and the
+            # score moves by exactly the hit points (15 + 25 = 40).
+            variant_hit = copy.deepcopy(fixture)
+            for m in variant_hit:
+                if str(m.get("id")) == "6919847":
+                    m["outcomePrices"] = "[\"0.30\", \"0.70\"]"
+            variant["data"] = variant_hit
+            settle_refresh(page2)
+            check("crossing takes over the screen",
+                  page2.locator("#g2Header").inner_text().strip() == "!! PRICE ALERT !!",
+                  page2.locator("#g2Header").inner_text())
+            check("board counts the alert hit and moves the score",
+                  page2.locator("#statHits").inner_text() == "1"
+                  and page2.locator("#scoreNum").inner_text() == "40"
+                  and page2.locator("#scoreLevel").inner_text() == "Watcher",
+                  f"score {page2.locator('#scoreNum').inner_text()}, hits {page2.locator('#statHits').inner_text()}")
+
             # 16. Revisit the same market: the alert row must show the set
             # state, not offer to set it again.
             page2.click('.vchip[data-cmd="back"]')
@@ -268,6 +315,13 @@ def main():
             check("alert row shows not-set state on a fresh market",
                   scroll_detail_to_alert(page2) and "set a price alert" in selected_line(page2).lower(),
                   selected_line(page2))
+
+            # 18. Telegram panel on a market with no alert: it offers the
+            # line the app would set (Fed at 0.925 -> below 88).
+            tg_cmd_fed = page2.locator("#tgCommand").inner_text()
+            check("telegram panel offers the would-be line on a fresh market",
+                  tg_cmd_fed == "/alert will-the-fed-increase-interest-rates-by-25-bps-after-the-december-2026-meeting-20260729232808636 below 88",
+                  tg_cmd_fed)
 
             ctx2.close()
             browser.close()

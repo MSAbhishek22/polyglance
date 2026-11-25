@@ -1,1 +1,4 @@
 qa/*.png
+# The watcher's live alert store holds Telegram chat ids (user data).
+watcher/alerts.json
+watcher/alerts.json.tmp

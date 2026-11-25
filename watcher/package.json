@@ -1,0 +1,1 @@
+{"description":"PolyGlance Telegram alert watcher — checks Polymarket price lines on a timer and messages you on Telegram when one is crossed, while the app is closed.","name":"polyglance-watcher","private":true,"scripts":{"start":"node watcher.js"},"type":"module","version":"1.0.0"}

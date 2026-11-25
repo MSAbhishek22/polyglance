@@ -7,7 +7,7 @@
 <meta name="description" content="Live Polymarket odds on Even Realities G2 smart glasses. Glance at the number, act on it in one tap. Paper money only.">
 <link rel="stylesheet" href="css/styles.css">
 <style>
-.hero3d-wrap{position:relative;height:340px;min-height:260px;overflow:hidden;background:#0b1020;border-radius:18px;margin:18px auto;max-width:1100px}
+.hero3d-wrap{position:relative;height:340px;min-height:260px;overflow:hidden;background:#050807;border-radius:18px;margin:18px auto;max-width:1100px}
 .hero3d-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .hero3d-cap{position:absolute;left:18px;bottom:36px;margin:0;color:#fff;font:600 14px/1.4 system-ui,-apple-system,sans-serif;text-shadow:0 1px 8px rgba(0,0,0,.65);z-index:2}
 .hero3d-cue{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);margin:0;color:rgba(255,255,255,.92);font:600 13px/1.4 system-ui,-apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;z-index:2;animation:hero3dbob 2s ease-in-out infinite}
@@ -42,14 +42,16 @@
   
 <section class="hero3d-wrap" aria-label="3D scene — The market, at a glance — now in 3D.">
   <canvas id="hero3d" aria-hidden="true"></canvas>
-  <p class="hero3d-cap">The market, at a glance — now in 3D.</p>
+  <p class="hero3d-cap">Live odds as a landscape — the six biggest markets orbit the lens: height is the Yes price, amber is the day's biggest mover.</p>
   <p class="hero3d-cue">&#8595; Scroll to explore</p>
 </section>
 <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
 <script>
-/* J8 hero 3D — auto-starts on first load, no click needed. Three.js r149 CDN
+/* Hero 3D — auto-starts on first load, no click needed. Three.js r149 CDN
    with unpkg fallback. Pauses off-screen; renders one static frame when the
-   user prefers reduced motion. */
+   user prefers reduced motion. Palette is the G2's own: black-green,
+   phosphor green, amber for alerts only. The app feeds it live markets
+   through window.PolyGlanceScene.setMarkets once odds load. */
 (function(){
   var canvas = document.getElementById('hero3d'); if(!canvas) return;
   function start(){
@@ -62,24 +64,64 @@
     var wrap = canvas.parentElement;
     var renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    var scene = new THREE.Scene(); scene.background = new THREE.Color(0x0a1420);
+    var INK = 0x050807, GREEN = 0x4dff88, DIM = 0x1d5c36, AMBER = 0xffb224;
+    var scene = new THREE.Scene(); scene.background = new THREE.Color(INK);
+    scene.fog = new THREE.Fog(INK, 10, 22);
     var camera = new THREE.PerspectiveCamera(45, 2, 0.1, 100);
-    camera.position.set(0, 1.0, 10);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+    camera.position.set(0, 2.1, 10.5); camera.lookAt(0, 0.1, 0);
+    scene.add(new THREE.AmbientLight(0xd8ffe2, 0.8));
     var dl = new THREE.DirectionalLight(0xffffff, 0.9); dl.position.set(4, 6, 6); scene.add(dl);
-    var dl2 = new THREE.DirectionalLight(0xffffff, 0.35); dl2.position.set(-5, -2, 4); scene.add(dl2);
-    var lens = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.13, 16, 90),
-      new THREE.MeshStandardMaterial({color: 0x22d3ee, roughness: 0.25, metalness: 0.7}));
-    scene.add(lens);
-    var gem = new THREE.Mesh(new THREE.IcosahedronGeometry(0.95, 0),
-      new THREE.MeshStandardMaterial({color: 0xf2b705, roughness: 0.3, metalness: 0.5, flatShading: true}));
-    scene.add(gem);
-    var orbs = []; var cols = [0x22d3ee, 0xa78bfa, 0x34d399, 0xf472b6, 0xfbbf24];
-    for(var i=0;i<5;i++){
+    var dl2 = new THREE.DirectionalLight(0x4dff88, 0.35); dl2.position.set(-5, -2, 4); scene.add(dl2);
+
+    // The odds terrain: a wireframe landscape under the lens, over a dark
+    // floor so the far lines fade into fog instead of stacking up.
+    var terrainGeo = new THREE.PlaneGeometry(26, 14, 52, 28);
+    var base = terrainGeo.attributes.position.array.slice();
+    var floor = new THREE.Mesh(new THREE.PlaneGeometry(26, 14),
+      new THREE.MeshBasicMaterial({color: 0x031007}));
+    floor.rotation.x = -Math.PI/2; floor.position.set(0, -1.78, -2); scene.add(floor);
+    var terrain = new THREE.Mesh(terrainGeo, new THREE.MeshBasicMaterial({color: DIM, wireframe: true, transparent: true, opacity: 0.5}));
+    terrain.rotation.x = -Math.PI/2; terrain.position.set(0, -1.7, -2); scene.add(terrain);
+
+    // The lens ring — the glasses, in phosphor green — and the amber
+    // beacon at its centre: amber is the alert colour, and it breathes.
+    var lens = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.12, 16, 90),
+      new THREE.MeshStandardMaterial({color: GREEN, roughness: 0.25, metalness: 0.7, emissive: 0x0d3319}));
+    lens.position.y = 0.55; scene.add(lens);
+    var gem = new THREE.Mesh(new THREE.IcosahedronGeometry(0.8, 0),
+      new THREE.MeshStandardMaterial({color: AMBER, roughness: 0.3, metalness: 0.5, flatShading: true, emissive: 0x3a2400}));
+    gem.position.y = 0.55; scene.add(gem);
+
+    // Six market orbs. Idle until live odds arrive; then they become the
+    // six biggest markets by 24h volume — orbit height is the Yes price,
+    // size follows volume rank, the day's biggest mover turns amber.
+    var GREENS = [0x4dff88, 0x35d465, 0x2ee06f, 0x4dff88, 0x27ae60, 0x35d465];
+    var orbs = [];
+    for(var i=0;i<6;i++){
       var o = new THREE.Mesh(new THREE.SphereGeometry(0.26, 18, 18),
-        new THREE.MeshStandardMaterial({color: cols[i], roughness: 0.35}));
-      o.userData.a = i/5*Math.PI*2; scene.add(o); orbs.push(o);
+        new THREE.MeshStandardMaterial({color: GREENS[i], roughness: 0.35, emissive: 0x0d3319}));
+      o.userData = { a: i/6*Math.PI*2, y: 0.55, targetY: 0.55, mover: false };
+      scene.add(o); orbs.push(o);
     }
+    window.PolyGlanceScene = {
+      setMarkets: function(markets){
+        if(!markets || !markets.length) return;
+        var top = markets.slice().sort(function(x, y){ return y.volume24hr - x.volume24hr; }).slice(0, 6);
+        var mover = top[0];
+        for(var j=1;j<top.length;j++){ if(Math.abs(top[j].oneDayChange) > Math.abs(mover.oneDayChange)) mover = top[j]; }
+        top.forEach(function(m, idx){
+          var orb = orbs[idx]; if(!orb) return;
+          orb.userData.targetY = -0.5 + m.prices[0] * 2.2;
+          orb.scale.setScalar(0.8 + (top.length - idx) * 0.14);
+          var isMover = (m === mover);
+          if(isMover !== orb.userData.mover){
+            orb.userData.mover = isMover;
+            orb.material.color.setHex(isMover ? AMBER : GREENS[idx]);
+            orb.material.emissive.setHex(isMover ? 0x3a2400 : 0x0d3319);
+          }
+        });
+      }
+    };
 
     var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var visible = true;
@@ -90,10 +132,20 @@
       new IntersectionObserver(function(en){ visible = en[0].isIntersecting; }, {threshold: 0}).observe(wrap);
     }
     var clock = new THREE.Clock();
-    function tick(t){ lens.rotation.x = Math.sin(t*0.4)*0.35; lens.rotation.y = t*0.25;
-    gem.rotation.x = t*0.5; gem.rotation.y = t*0.7;
-    orbs.forEach(function(o, i){ var a = o.userData.a + t*0.5;
-      o.position.set(Math.cos(a)*3.4, Math.sin(a*1.5)*0.7, Math.sin(a)*3.4); }); }
+    function tick(t){
+      lens.rotation.x = Math.sin(t*0.4)*0.3; lens.rotation.y = t*0.22;
+      gem.rotation.x = t*0.5; gem.rotation.y = t*0.7;
+      gem.scale.setScalar(1 + Math.sin(t*2.2)*0.07);
+      var pos = terrainGeo.attributes.position;
+      for(var vi=0; vi<pos.count; vi++){
+        var bx = base[vi*3], by = base[vi*3+1];
+        pos.setZ(vi, Math.sin(bx*0.55 + t*0.9)*0.22 + Math.cos(by*0.75 + t*0.6)*0.18);
+      }
+      pos.needsUpdate = true;
+      orbs.forEach(function(o){ var a = o.userData.a + t*0.45;
+        o.userData.y += (o.userData.targetY - o.userData.y) * 0.03;
+        o.position.set(Math.cos(a)*3.5, o.userData.y + Math.sin(a*1.5)*0.25, Math.sin(a)*3.5); });
+    }
     function frame(){ requestAnimationFrame(frame); if(!visible) return; tick(clock.getElapsedTime()); renderer.render(scene, camera); }
     if(reduced){ tick(0.6); renderer.render(scene, camera); } else { frame(); }
   }
@@ -141,7 +193,7 @@
       <article class="card">
         <p class="step-num">3</p>
         <h3>Get told</h3>
-        <p>Set a line — say, Yes at 65%. When the market crosses it while the app is open, the alert takes over the display. No phone buzz, no missed move.</p>
+        <p>Set a line — say, Yes at 65%. When the market crosses it while the app is open, the alert takes over the display. And the watcher that ships with the app can send the same crossing to your Telegram when the app is closed — see the panel under the simulator.</p>
       </article>
     </div>
     <p class="note">Voice works the same way: say <q>next</q>, <q>watch this</q>, <q>bet ten on yes</q>, <q>positions</q>, <q>back</q>. In this browser demo the mic button uses your browser's speech recognition where it offers one; the same commands sit under the display as chips, so every command can be tried either way.</p>
@@ -199,6 +251,49 @@
     </div>
 
     <p class="note">Keyboard works too: ↑ ↓ to scroll, Enter to tap, Backspace to double-tap. Your watchlist, paper book and alerts are kept in this browser only (local storage) — nothing is sent anywhere.</p>
+
+    <div class="board" id="board">
+      <div class="board-head">
+        <h3>Your board</h3>
+        <p class="board-note">Every number here comes from your own session in this browser — the watchlist, the alerts, the paper book. Nothing is made up, and the board resets with the paper book.</p>
+      </div>
+      <div class="board-grid">
+        <div class="board-stat">
+          <p class="board-num" id="scoreNum">0</p>
+          <p class="board-label">Watcher score</p>
+          <p class="board-level"><span id="scoreLevel">First glance</span> · <span id="scoreNext"></span></p>
+          <div class="bar"><div class="bar-fill" id="scoreBar"></div></div>
+        </div>
+        <div class="board-stat">
+          <p class="board-num amber" id="statHits">0</p>
+          <p class="board-label">Alert hits — your lines that crossed</p>
+        </div>
+        <div class="board-stat">
+          <p class="board-num" id="statWatchingNow">0</p>
+          <p class="board-label">Markets on your watchlist</p>
+        </div>
+        <div class="board-stat board-calls">
+          <p class="board-label">Top calls — your paper positions by P&amp;L</p>
+          <div id="callsList"><p class="calls-empty">No paper calls yet. Place a paper bet and your best calls land here.</p></div>
+        </div>
+      </div>
+      <p class="board-breakdown" id="scoreBreakdown"></p>
+    </div>
+
+    <div class="tg-panel" id="tgPanel">
+      <h3>Telegram alerts — for when the app is closed</h3>
+      <p>An alert set here only fires while this app is open — the glasses show nothing while another app is in front. The watcher that ships with this project (the <code>watcher/</code> folder in the repo) closes that gap: it checks the same price lines on a timer and sends the crossing to your Telegram, app open or not.</p>
+      <p class="tg-current" id="tgCurrent">When live odds load, the Telegram command for a market appears here.</p>
+      <div class="tg-command-row">
+        <code class="tg-command" id="tgCommand">—</code>
+        <button class="ctl ctl-small" id="btnCopyTg" type="button" disabled>Copy Telegram command</button>
+      </div>
+      <p class="tg-status" id="tgStatus" aria-live="polite"></p>
+      <p class="tg-bot-row" id="tgBotRow" hidden>
+        <a class="btn btn-quiet" id="tgBotLink" href="#" target="_blank" rel="noopener">Open the bot in Telegram</a>
+      </p>
+      <p class="tg-steps">How it goes: once the watcher is running — one short trip to BotFather, steps in the project README — you send <code>/start</code> to the bot in Telegram, then paste the command above. The watcher checks every minute by default and messages you once per crossing.</p>
+    </div>
   </section>
 
   <!-- OUTCOME -->
@@ -211,14 +306,14 @@
       <div class="stat"><p class="stat-num">30s</p><p class="stat-label">refresh cycle while the app is open</p></div>
       <div class="stat"><p class="stat-num">$0</p><p class="stat-label">real money at risk — every bet in PolyGlance is paper</p></div>
     </div>
-    <p class="note">The build is covered by 16 automated tests on the core maths and screen logic, run against a recorded response from the live Polymarket API. If a fetch fails, the display keeps the last good numbers and says so — it never invents a price.</p>
+    <p class="note">The build is covered by 38 automated tests: the core maths and screen logic, pinned to a recorded response from the live Polymarket API, plus the Telegram watcher and the board maths, tested with fake state so no test touches the live network. If a fetch fails, the display keeps the last good numbers and says so — it never invents a price.</p>
   </section>
 </main>
 
 <footer class="footer">
   <div class="footer-cols">
     <p>PolyGlance — built for Heads Up: Even Realities (DoraHacks), Track 02 · Crypto &amp; DeFi. Data: Polymarket Gamma API, public and live. Odds are market prices, not advice; nothing here is financial advice.</p>
-    <p>Paper trading only: no wallet, no real orders, no user funds — as the event rules require. Alerts work while the app is open; the G2 cannot show anything while another app is in front, and PolyGlance does not pretend otherwise.</p>
+    <p>Paper trading only: no wallet, no real orders, no user funds — as the event rules require. Alerts in the app work while it is open; the G2 cannot show anything while another app is in front, and PolyGlance does not pretend otherwise. The optional Telegram watcher covers the closed-app case: it checks the same lines and messages you, and it is read-only like the app.</p>
   </div>
 </footer>
 

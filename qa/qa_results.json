@@ -1,6 +1,6 @@
 {
-  "passed": 34,
-  "total": 34,
+  "passed": 44,
+  "total": 44,
   "results": [
     {
       "check": "glance shows live markets",
@@ -16,6 +16,11 @@
       "check": "outcome stats filled",
       "pass": true,
       "detail": ""
+    },
+    {
+      "check": "telegram panel offers a command once odds load",
+      "pass": true,
+      "detail": "/alert new-nvidia-ceo-named-by-december-31-2026 below 95"
     },
     {
       "check": "scroll moves selection",
@@ -46,6 +51,11 @@
       "check": "position recorded",
       "pass": true,
       "detail": ""
+    },
+    {
+      "check": "top calls board lists the paper position",
+      "pass": true,
+      "detail": "1 call rows"
     },
     {
       "check": "back returns to glance",
@@ -143,6 +153,41 @@
       "detail": "Watching 0 \u00b7 Positions 0 \u00b7 Alerts 1"
     },
     {
+      "check": "telegram panel shows the open market's set-alert command",
+      "pass": true,
+      "detail": "/alert will-candidate-a-be-the-next-ceo-of-nvidia above 23"
+    },
+    {
+      "check": "telegram bot link hidden while no bot is configured",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "copy button confirms the copy",
+      "pass": true,
+      "detail": "Copied. Paste it to the bot in Telegram."
+    },
+    {
+      "check": "clipboard holds the exact command",
+      "pass": true,
+      "detail": "/alert will-candidate-a-be-the-next-ceo-of-nvidia above 23"
+    },
+    {
+      "check": "board scores the set alert (15 points, no hits yet)",
+      "pass": true,
+      "detail": "0 watched \u00d7 10 \u00b7 1 alert \u00d7 15 \u00b7 0 hits \u00d7 25 \u00b7 paper P&L +$0.00 (+0 pts)"
+    },
+    {
+      "check": "crossing takes over the screen",
+      "pass": true,
+      "detail": "!! PRICE ALERT !!"
+    },
+    {
+      "check": "board counts the alert hit and moves the score",
+      "pass": true,
+      "detail": "score 40, hits 1"
+    },
+    {
       "check": "back to glance after setting alert",
       "pass": true,
       "detail": ""
@@ -150,7 +195,7 @@
     {
       "check": "re-select NVIDIA market",
       "pass": true,
-      "detail": "> 18% \u25b27.7 Will there be no new be CEO of\u2026"
+      "detail": "> 30% \u25b27.7 Will there be no new be CEO of\u2026"
     },
     {
       "check": "alert row shows set state on revisit",
@@ -166,6 +211,11 @@
       "check": "alert row shows not-set state on a fresh market",
       "pass": true,
       "detail": "> Set a price alert"
+    },
+    {
+      "check": "telegram panel offers the would-be line on a fresh market",
+      "pass": true,
+      "detail": "/alert will-the-fed-increase-interest-rates-by-25-bps-after-the-december-2026-meeting-20260729232808636 below 88"
     },
     {
       "check": "no page or console errors",

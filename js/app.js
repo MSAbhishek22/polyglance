@@ -5,6 +5,8 @@
 import { GlanceApp, PaperBook, parseCommand, fmtMoney, fmtPct, topByVolume } from './core.js';
 import { fetchMarkets } from './data.js';
 import { initEvenHub } from './evenhub.js';
+import { botLink, panelAlert, alertCommandText, alertSummary } from './telegram.js';
+import { scoreFor, levelFor, topCalls, POINTS } from './game.js';
 
 const STORE_KEY = 'polyglance-v1';
 const $ = (id) => document.getElementById(id);
@@ -12,6 +14,10 @@ const $ = (id) => document.getElementById(id);
 const app = new GlanceApp();
 let hubPush = () => {};
 let lastFetchOk = null;
+// Board stats that live outside the core: how many alerts have fired
+// while this browser held them. Counted where the core's alert queue
+// grows (in refresh), persisted with the rest of the session.
+let stats = { alertHits: 0 };
 
 // ---------- persistence (this browser only) ----------
 
@@ -21,6 +27,7 @@ function save() {
       watchlist: [...app.watchlist],
       book: app.book.toJSON(),
       alerts: app.alerts,
+      stats,
     }));
   } catch { /* storage unavailable — session still works */ }
 }
@@ -35,6 +42,9 @@ function load() {
     if (Array.isArray(data.alerts)) {
       app.alerts = data.alerts.filter((a) => a && typeof a.marketId === 'string'
         && Number.isFinite(a.threshold) && (a.dir === 'above' || a.dir === 'below'));
+    }
+    if (data.stats && Number.isInteger(data.stats.alertHits) && data.stats.alertHits >= 0) {
+      stats = { alertHits: data.stats.alertHits };
     }
   } catch { /* a broken save must never break the app */ }
 }
@@ -65,6 +75,8 @@ function draw() {
     : `Polymarket · live · updated ${time}`;
   $('sessionInfo').textContent =
     `Watching ${app.watchlist.size} · Positions ${app.book.positionList().length} · Alerts ${app.alerts.length}`;
+  updateTgPanel();
+  updateScoreboard();
 }
 
 function after() {
@@ -92,7 +104,14 @@ async function refresh(manual = false) {
   if (manual) btn.disabled = true;
   try {
     const markets = await fetchMarkets();
+    const queuedBefore = app.alertQueue.length;
     app.setMarkets(markets);
+    // Any growth in the alert queue is a line that really crossed while
+    // this browser held the alert — that is a board "hit", counted once.
+    if (app.alertQueue.length > queuedBefore) {
+      stats.alertHits += app.alertQueue.length - queuedBefore;
+    }
+    if (window.PolyGlanceScene) window.PolyGlanceScene.setMarkets(markets);
     lastFetchOk = true;
     statusEl.textContent = `Live odds loaded — ${markets.length} markets, refreshed ${new Date().toLocaleTimeString('en-GB', { hour12: false })}.`;
     const top = topByVolume(markets, 1)[0];
@@ -134,6 +153,7 @@ $('btnReset').addEventListener('click', () => {
   app.watchlist.clear();
   app.alerts = [];
   app.alertQueue = [];
+  stats = { alertHits: 0 };
   app.book = new PaperBook();
   app.screen = 'glance';
   app.cursor = 0;
@@ -208,6 +228,147 @@ if (window.matchMedia('(pointer: fine)').matches) {
   $('simWrap').addEventListener('pointerleave', () => { bezel.style.transform = ''; });
 }
 
+// ---------- Your board (score, level, hits, top calls) ----------
+// Gamification with its working shown: every number is computed from
+// the watchlist, the alerts, the counted alert hits and the paper book
+// at live prices (js/game.js). The board resets with the paper book.
+
+const scoreNumEl = $('scoreNum');
+const scoreLevelEl = $('scoreLevel');
+const scoreNextEl = $('scoreNext');
+const scoreBarEl = $('scoreBar');
+const statHitsEl = $('statHits');
+const statWatchingEl = $('statWatchingNow');
+const scoreBreakdownEl = $('scoreBreakdown');
+const callsListEl = $('callsList');
+let lastScore = null;
+
+function updateScoreboard() {
+  const { pnl } = app.book.value(app.marketById);
+  const watched = app.watchlist.size;
+  const alerts = app.alerts.length;
+  const score = scoreFor({ watched, alerts, alertHits: stats.alertHits, pnl });
+  const lvl = levelFor(score);
+
+  scoreNumEl.textContent = String(score);
+  scoreLevelEl.textContent = lvl.name;
+  scoreNextEl.textContent = lvl.next
+    ? `${lvl.next.at - score} pts to ${lvl.next.name}`
+    : 'top level';
+  scoreBarEl.style.transform = `scaleX(${lvl.progress})`;
+  statHitsEl.textContent = String(stats.alertHits);
+  statWatchingEl.textContent = String(watched);
+  scoreBreakdownEl.textContent =
+    `${watched} watched × ${POINTS.watch} · ${alerts} alert${alerts === 1 ? '' : 's'} × ${POINTS.alert}` +
+    ` · ${stats.alertHits} hit${stats.alertHits === 1 ? '' : 's'} × ${POINTS.hit}` +
+    ` · paper P&L ${pnl >= 0 ? '+' : '−'}${fmtMoney(Math.abs(pnl))} (${Math.round(pnl) >= 0 ? '+' : '−'}${Math.abs(Math.round(pnl))} pts)`;
+
+  if (lastScore !== null && score !== lastScore) {
+    scoreNumEl.classList.remove('bump');
+    void scoreNumEl.offsetWidth;
+    scoreNumEl.classList.add('bump');
+  }
+  lastScore = score;
+
+  const calls = topCalls(app.book, app.marketById, 3);
+  callsListEl.innerHTML = '';
+  if (!calls.length) {
+    const p = document.createElement('p');
+    p.className = 'calls-empty';
+    p.textContent = 'No paper calls yet. Place a paper bet and your best calls land here.';
+    callsListEl.appendChild(p);
+    return;
+  }
+  for (const c of calls) {
+    const row = document.createElement('div');
+    row.className = 'call-row';
+    const q = document.createElement('span');
+    q.className = 'call-q';
+    q.textContent = `${c.outcome} · ${c.question}`;
+    const v = document.createElement('span');
+    v.className = 'call-pnl' + (c.pnl >= 0 ? ' up' : ' down');
+    v.textContent = `${c.pnl >= 0 ? '+' : '−'}${fmtMoney(Math.abs(c.pnl))}`;
+    row.appendChild(q);
+    row.appendChild(v);
+    callsListEl.appendChild(row);
+  }
+}
+
+// ---------- Telegram alerts panel ----------
+// The watcher bot (watcher/) takes /alert commands in Telegram. This
+// panel builds the exact command for the market on screen, so the user
+// copies it instead of typing a long slug by hand. It works with no bot
+// configured: the command text is the product. The bot link appears only
+// once BOT_USERNAME is set in js/telegram.js.
+
+const tgCurrentEl = $('tgCurrent');
+const tgCommandEl = $('tgCommand');
+const tgCopyBtn = $('btnCopyTg');
+const tgStatusEl = $('tgStatus');
+let tgCommand = '';
+
+// Which market the panel talks about: the one open on the detail screen;
+// else the market of the most recent alert still in the feed; else the
+// biggest market by volume — so the panel always offers a real command
+// once odds have loaded.
+function panelMarket() {
+  const open = app.detail();
+  if (open) return open;
+  for (let i = app.alerts.length - 1; i >= 0; i -= 1) {
+    const m = app.marketById.get(app.alerts[i].marketId);
+    if (m) return m;
+  }
+  return topByVolume(app.markets, 1)[0] || null;
+}
+
+function updateTgPanel() {
+  const m = panelMarket();
+  if (!m) {
+    tgCommand = '';
+    tgCurrentEl.textContent = 'When live odds load, the Telegram command for a market appears here.';
+    tgCommandEl.textContent = '—';
+    tgCopyBtn.disabled = true;
+    return;
+  }
+  const info = panelAlert(m, app.alerts);
+  tgCommand = alertCommandText(m, app.alerts);
+  tgCurrentEl.textContent =
+    `${m.question} — message me when ${alertSummary(m, app.alerts)}` +
+    (info && info.alreadySet ? ' (the alert you set on this market).' : ' (the line “Set a price alert” would use).');
+  tgCommandEl.textContent = tgCommand || '—';
+  tgCopyBtn.disabled = !tgCommand;
+}
+
+tgCopyBtn.addEventListener('click', async () => {
+  if (!tgCommand) return;
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(tgCommand);
+    ok = true;
+  } catch { /* clipboard API refused — try the selection fallback */ }
+  if (!ok) {
+    const ta = document.createElement('textarea');
+    ta.value = tgCommand;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    ta.remove();
+  }
+  tgStatusEl.textContent = ok
+    ? 'Copied. Paste it to the bot in Telegram.'
+    : 'Copy did not work here — select the command above and copy it by hand.';
+});
+
+// The deep link exists only when a bot username is configured; while it
+// is not, the row stays hidden rather than showing a dead control.
+const tgLink = botLink();
+if (tgLink) {
+  $('tgBotLink').href = tgLink;
+  $('tgBotRow').hidden = false;
+}
+
 // ---------- go ----------
 
 load();
@@ -218,3 +379,19 @@ setInterval(refresh, 30_000);
 initEvenHub(app, after, (connected) => {
   if (connected) $('modeChip').textContent = 'Connected: Even App / simulator';
 }).then((hub) => { hubPush = hub.push; hubPush(); });
+
+// Scroll reveal — sections rise into view once. Progressive enhancement:
+// the class is only added when IntersectionObserver exists, and the
+// low-motion rules in the stylesheet cancel the transition, so nothing
+// can be left hidden or moving for a reader who opted out of motion.
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    }
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.section, .board, .tg-panel').forEach((el) => {
+    el.classList.add('reveal');
+    io.observe(el);
+  });
+}
